@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a Ticket</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-submit">
+    <div class="container">
+        <header>
+            <div class="section-tag">Support Portal</div>
+            <h1>Submit a Ticket</h1>
+            <p class="subtitle">Describe your issue and we will get it sorted.</p>
+            <nav class="nav-links">
+                <a href="admin.html" class="btn-ghost btn-sm">Admin Dashboard</a>
+            </nav>
+        </header>
+
+        <form id="ticketForm" class="ticket-form card">
+            <div class="form-group">
+                <label for="name">Full Name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" required placeholder="e.g. Jane Smith">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address <span class="required">*</span></label>
+                <input type="email" id="email" name="email" required placeholder="e.g. jane.smith@university.ac.uk">
+            </div>
+            <div class="form-group">
+                <label for="title">Ticket Title <span class="required">*</span></label>
+                <input type="text" id="title" name="title" required placeholder="Brief summary of your issue">
+            </div>
+            <div class="form-group">
+                <label for="description">Description <span class="required">*</span></label>
+                <textarea id="description" name="description" rows="5" required placeholder="Please describe your issue in detail..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="priority">Priority</label>
+                <select id="priority" name="priority">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    <option value="">-- Leave blank for auto-detection --</option>
+                    <option value="IT Support">IT Support</option>
+                    <option value="Facilities">Facilities</option>
+                    <option value="Course Registration">Course Registration</option>
+                    <option value="Student Finance">Student Finance</option>
+                    <option value="Library Services">Library Services</option>
+                    <option value="General Enquiry">General Enquiry</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-acid" id="submitBtn">Submit Ticket</button>
+        </form>
+
+        <div id="successMessage" class="success-message card hidden">
+            <div class="success-icon">&#10003;</div>
+            <h2>Ticket Submitted</h2>
+            <p>Your ticket ID is <strong id="ticketIdDisplay"></strong></p>
+            <p>Status: <span class="badge badge-new">New</span></p>
+            <button class="btn-ghost" onclick="resetForm()">Submit Another Ticket</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
