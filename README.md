@@ -66,29 +66,75 @@ git add . && git commit -m "deploy" && git push
 - GitHub Actions: https://github.com/kerjing0328/ticket-triage-g1/actions
 - Live App: https://witty-dune-0dbfce600.7.azurestaticapps.net
 
-### Recreate Resources (if needed)
+### Create All Azure Resources
 
 ```bash
 RG=rg-ticket-triage
+LOCATION=eastasia
 
+# 1. Resource Group
+az group create -n $RG -l $LOCATION
+
+# 2. Cosmos DB (free tier)
+az cosmosdb create -n cosmos-ticket-triage-g1 -g $RG \
+  --kind GlobalDocumentDB --enable-free-tier true --locations regionName=$LOCATION
+
+# 3. Cosmos DB database and container
+az cosmosdb sql database create -a cosmos-ticket-triage-g1 -g $RG \
+  -n Helpdesk
+az cosmosdb sql container create -a cosmos-ticket-triage-g1 -g $RG \
+  -d Helpdesk -n Tickets --partition-key-path "/category" --throughput 400
+
+# 4. AI Language (free tier)
+az cognitiveservices account create -n language-ticket-triage-g1 -g $RG \
+  --kind TextAnalytics --sku F0 --location $LOCATION
+
+# 5. Key Vault (RBAC enabled)
+az keyvault create -n kv-ticket-triage-g1 -g $RG --enable-rbac-authorization true
+
+# 6. Static Web App
 az staticwebapp create -n swa-ticket-triage -g $RG \
   --source https://github.com/kerjing0328/ticket-triage-g1.git \
   --branch main \
   --app-location "frontend" --api-location "api" \
-  --sku Free --location eastasia
+  --sku Free --location $LOCATION
+```
 
-# Key Vault credentials (service principal for secret access)
-az ad app create --display-name "tickettriage-kv-access"
-az ad sp create --id <app-id>
-az ad app credential reset --id <app-id> --append --end-date "2027-01-01"
-az role assignment create --assignee <app-id> \
+### Configure Secrets
+
+```bash
+RG=rg-ticket-triage
+
+# Get AI Language keys
+AI_ENDPOINT=$(az cognitiveservices account show -n language-ticket-triage-g1 -g $RG --query "properties.endpoint" -o tsv)
+AI_KEY=$(az cognitiveservices account keys list -n language-ticket-triage-g1 -g $RG --query "key1" -o tsv)
+
+# Get Cosmos DB connection string
+COSMOS_CONN=$(az cosmosdb keys list -n cosmos-ticket-triage-g1 -g $RG --query "primaryConnectionString" -o tsv)
+
+# Store secrets in Key Vault
+az keyvault secret set -n COSMOS_CONNECTION_STRING --vault-name kv-ticket-triage-g1 --value "$COSMOS_CONN"
+az keyvault secret set -n AI_LANGUAGE_ENDPOINT --vault-name kv-ticket-triage-g1 --value "$AI_ENDPOINT"
+az keyvault secret set -n AI_LANGUAGE_KEY --vault-name kv-ticket-triage-g1 --value "$AI_KEY"
+
+# Service principal for Key Vault access
+APP_ID=$(az ad app create --display-name "tickettriage-kv-access" --query "appId" -o tsv)
+az ad sp create --id $APP_ID
+SECRET=$(az ad app credential reset --id $APP_ID --append --end-date "2027-01-01" --query "password" -o tsv)
+TENANT=$(az account show --query "tenantId" -o tsv)
+
+az role assignment create --assignee $APP_ID \
   --role "Key Vault Secrets User" \
-  --scope /subscriptions/<sub>/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/kv-ticket-triage-g1
+  --scope /subscriptions/$(az account show --query "id" -o tsv)/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/kv-ticket-triage-g1
 
+# Store in Static Web App settings
 az staticwebapp appsettings set -n swa-ticket-triage -g $RG --setting-names \
-  AZURE_CLIENT_ID="<client-id>" \
-  AZURE_CLIENT_SECRET="<client-secret>" \
-  AZURE_TENANT_ID="<tenant-id>" \
+  COSMOS_CONNECTION_STRING="$COSMOS_CONN" \
+  AI_LANGUAGE_ENDPOINT="$AI_ENDPOINT" \
+  AI_LANGUAGE_KEY="$AI_KEY" \
+  AZURE_CLIENT_ID="$APP_ID" \
+  AZURE_CLIENT_SECRET="$SECRET" \
+  AZURE_TENANT_ID="$TENANT" \
   KEY_VAULT_URL="https://kv-ticket-triage-g1.vault.azure.net/"
 ```
 
