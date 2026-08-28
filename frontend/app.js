@@ -1,32 +1,33 @@
-const API_BASE = '/api';
+const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:7071/api' : '/api';
 let tickets = [];
 let currentTicketId = null;
 
-// Generate unique ticket ID
-function generateTicketId() {
-    return 'TKT-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+async function createTicketToCloud(ticketData) {
+    try {
+        const response = await fetch(`${API_BASE}/CreateTicket`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ticketData)
+        });
+        if (!response.ok) throw new Error('Failed to create ticket.');
+        return await response.json();
+    } catch (error) {
+        console.error("Error creating ticket:", error);
+        return null;
+    }
 }
 
-// ============================================================
-// AZURE FUNCTION: CreateTicket
-// Replace localStorage with: fetch(`${API_BASE}/CreateTicket`, { method: 'POST', body: ... })
-// Saves ticket to Cosmos DB
-// ============================================================
-function saveTickets() {
-    localStorage.setItem('tickets', JSON.stringify(tickets));
+async function loadTickets() {
+    try {
+        const response = await fetch(`${API_BASE}/GetTickets`);
+        if (!response.ok) throw new Error('Failed to fetch tickets.');
+        tickets = await response.json();
+    } catch (error) {
+        console.error("Error loading tickets:", error);
+        tickets = [];
+    }
 }
 
-// ============================================================
-// AZURE FUNCTION: GetTickets
-// Replace localStorage with: fetch(`${API_BASE}/GetTickets`)
-// Returns ticket array from Cosmos DB
-// ============================================================
-function loadTickets() {
-    const stored = localStorage.getItem('tickets');
-    tickets = stored ? JSON.parse(stored) : [];
-}
-
-// Get formatted date
 function formatDate(dateString) {
     return new Date(dateString).toLocaleString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric',
@@ -34,49 +35,45 @@ function formatDate(dateString) {
     });
 }
 
-// Get status badge class
 function getStatusClass(status) {
     const map = {
         'New': 'badge-new',
-        'Categorised': 'badge-categorised',
+        'Categorised': 'badge-progress',
         'In Progress': 'badge-progress',
         'Resolved': 'badge-resolved'
     };
     return map[status] || 'badge-new';
 }
 
-// ============================================================
-// FORM SUBMISSION
-// Calls saveTickets() which uses CreateTicket Azure Function
-// Azure Function should also call Azure AI Language to
-// auto-categorize the ticket before saving to Cosmos DB
-// ============================================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Form submission (index.html)
 const ticketForm = document.getElementById('ticketForm');
-
 if (ticketForm) {
-    ticketForm.addEventListener('submit', (e) => {
+    ticketForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        loadTickets();
-
         const newTicket = {
-            id: generateTicketId(),
             name: document.getElementById('name').value.trim(),
             email: document.getElementById('email').value.trim(),
             title: document.getElementById('title').value.trim(),
             description: document.getElementById('description').value.trim(),
-            priority: document.getElementById('priority').value,
-            category: document.getElementById('category').value,
-            status: 'New',
-            createdAt: new Date().toISOString()
+            priority: document.getElementById('priority').value
         };
-
-        tickets.push(newTicket);
-        saveTickets();
-
-        document.getElementById('ticketIdDisplay').textContent = newTicket.id;
-        ticketForm.classList.add('hidden');
-        document.getElementById('successMessage').classList.remove('hidden');
+        const result = await createTicketToCloud(newTicket);
+        if (result) {
+            ticketForm.classList.add('hidden');
+            document.getElementById('successMessage').classList.remove('hidden');
+            if (result.ticketId) {
+                document.getElementById('ticketIdDisplay').textContent = result.ticketId.substring(0, 8);
+            }
+        } else {
+            alert("Error submitting ticket. Please try again.");
+        }
     });
 }
 
@@ -86,76 +83,62 @@ function resetForm() {
     document.getElementById('successMessage').classList.add('hidden');
 }
 
-// ============================================================
-// AZURE FUNCTION: GetTickets
-// Replace localStorage loadTickets() with:
-//   const response = await fetch(`${API_BASE}/GetTickets`);
-//   tickets = await response.json();
-// Supports query params: ?category=IT+Support&status=New&email=user@example.com
-// ============================================================
-function renderTickets() {
-    loadTickets();
-
+// Admin dashboard (admin.html)
+async function renderTickets() {
+    await loadTickets();
     const searchEmail = document.getElementById('searchEmail')?.value.toLowerCase() || '';
     const filterCategory = document.getElementById('filterCategory')?.value || '';
     const filterStatus = document.getElementById('filterStatus')?.value || '';
 
     let filtered = tickets.filter(t => {
-        const matchEmail = t.email.toLowerCase().includes(searchEmail);
+        const matchEmail = (t.email || '').toLowerCase().includes(searchEmail);
         const matchCategory = !filterCategory || t.category === filterCategory;
         const matchStatus = !filterStatus || t.status === filterStatus;
         return matchEmail && matchCategory && matchStatus;
     });
-
     filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    document.getElementById('statTotal').textContent = tickets.length;
-    document.getElementById('statNew').textContent = tickets.filter(t => t.status === 'New').length;
-    document.getElementById('statInProgress').textContent = tickets.filter(t => t.status === 'In Progress').length;
-    document.getElementById('statResolved').textContent = tickets.filter(t => t.status === 'Resolved').length;
+    if (document.getElementById('statTotal')) {
+        document.getElementById('statTotal').textContent = tickets.length;
+        document.getElementById('statNew').textContent = tickets.filter(t => t.status === 'New').length;
+        document.getElementById('statInProgress').textContent = tickets.filter(t => t.status === 'In Progress').length;
+        document.getElementById('statResolved').textContent = tickets.filter(t => t.status === 'Resolved').length;
+    }
 
-    const listContainer = document.getElementById('ticketList');
+    const tableBody = document.getElementById('ticketTableBody');
+    if (!tableBody) return;
 
     if (filtered.length === 0) {
-        listContainer.innerHTML = '<p class="empty-state">No tickets found.</p>';
+        tableBody.innerHTML = '<tr><td colspan="7" class="muted" style="padding:22px;">No tickets found.</td></tr>';
         return;
     }
 
-    listContainer.innerHTML = filtered.map(ticket => `
-        <div class="ticket-card" data-id="${ticket.id}">
-            <div class="ticket-header">
-                <span class="ticket-id">${ticket.id}</span>
-                <span class="badge ${getStatusClass(ticket.status)}">${ticket.status}</span>
-                <span class="badge badge-priority priority-${ticket.priority.toLowerCase()}">${ticket.priority}</span>
-            </div>
-            <h3 class="ticket-title">${escapeHtml(ticket.title)}</h3>
-            <div class="ticket-meta">
-                <span><strong>From:</strong> ${escapeHtml(ticket.name)} (${escapeHtml(ticket.email)})</span>
-                <span><strong>Category:</strong> ${escapeHtml(ticket.category)}</span>
-                <span><strong>Created:</strong> ${formatDate(ticket.createdAt)}</span>
-            </div>
-            <p class="ticket-description">${escapeHtml(ticket.description)}</p>
-            <div class="ticket-actions">
-                <select class="status-select" onchange="openStatusModal('${ticket.id}', this.value)">
-                    <option value="New" ${ticket.status === 'New' ? 'selected' : ''}>New</option>
-                    <option value="Categorised" ${ticket.status === 'Categorised' ? 'selected' : ''}>Categorised</option>
-                    <option value="In Progress" ${ticket.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                    <option value="Resolved" ${ticket.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
-                </select>
-            </div>
-        </div>
+    tableBody.innerHTML = filtered.map(ticket => `
+        <tr data-id="${ticket.id}">
+            <td><span class="row-id">${ticket.id.substring(0,8)}</span><br><small>${formatDate(ticket.createdAt)}</small></td>
+            <td>${escapeHtml(ticket.name)}<br><small>${escapeHtml(ticket.email)}</small></td>
+            <td>${escapeHtml(ticket.title)}</td>
+            <td>${escapeHtml(ticket.category)}</td>
+            <td><span class="badge badge-priority priority-${(ticket.priority || 'medium').toLowerCase()}">${ticket.priority || 'Medium'}</span></td>
+            <td><span class="badge ${getStatusClass(ticket.status)}">${ticket.status}</span></td>
+            <td>
+                <div class="table-actions">
+                    <select class="table-select" onchange="openStatusModal('${ticket.id}', this.value)">
+                        <option value="New" ${ticket.status === 'New' ? 'selected' : ''}>New</option>
+                        <option value="In Progress" ${ticket.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                        <option value="Resolved" ${ticket.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                    </select>
+                </div>
+            </td>
+        </tr>
     `).join('');
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+function applyFilters() { renderTickets(); }
 
 function openStatusModal(ticketId, newStatus) {
     currentTicketId = ticketId;
-    document.getElementById('modalTicketId').textContent = ticketId;
+    document.getElementById('modalTicketId').textContent = ticketId.substring(0,8);
     document.getElementById('newStatus').value = newStatus;
     document.getElementById('statusModal').classList.remove('hidden');
 }
@@ -163,30 +146,26 @@ function openStatusModal(ticketId, newStatus) {
 function closeModal() {
     document.getElementById('statusModal').classList.add('hidden');
     currentTicketId = null;
+    renderTickets();
 }
 
-// ============================================================
-// AZURE FUNCTION: UpdateTicketStatus
-// Replace localStorage with:
-//   await fetch(`${API_BASE}/UpdateTicketStatus`, {
-//     method: 'POST',
-//     headers: { 'Content-Type': 'application/json' },
-//     body: JSON.stringify({ id: ticketId, status: newStatus })
-//   });
-// Updates ticket status in Cosmos DB
-// ============================================================
-function confirmStatusUpdate() {
+async function confirmStatusUpdate() {
     if (!currentTicketId) return;
-
     const newStatus = document.getElementById('newStatus').value;
-    loadTickets();
-    const ticket = tickets.find(t => t.id === currentTicketId);
-    if (ticket) {
-        ticket.status = newStatus;
-        saveTickets();
-        renderTickets();
+    try {
+        const response = await fetch(`${API_BASE}/UpdateTicketStatus`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: currentTicketId, status: newStatus })
+        });
+        if (!response.ok) throw new Error('Failed to update status.');
+        closeModal();
+        await renderTickets();
+    } catch (error) {
+        console.error("Error updating ticket:", error);
+        alert("Failed to update the ticket status.");
+        closeModal();
     }
-    closeModal();
 }
 
 function clearFilters() {
@@ -196,10 +175,8 @@ function clearFilters() {
     renderTickets();
 }
 
-// Initialize admin page
-if (document.getElementById('ticketList')) {
+if (document.getElementById('ticketTableBody')) {
     renderTickets();
-
     document.getElementById('searchEmail')?.addEventListener('input', renderTickets);
     document.getElementById('filterCategory')?.addEventListener('change', renderTickets);
     document.getElementById('filterStatus')?.addEventListener('change', renderTickets);

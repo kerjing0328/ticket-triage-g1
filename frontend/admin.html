@@ -10,69 +10,96 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="page-admin">
-    <div class="container">
-        <header>
-            <div class="section-tag">Admin Panel</div>
+    <header class="site">
+        <div class="wrap">
+            <div class="brand">Ticket<span>Triage</span></div>
+            <nav class="site">
+                <a href="index.html">Submit a ticket</a>
+                <a href="admin.html" class="active">Admin review</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
             <h1>Admin Dashboard</h1>
             <p class="subtitle">Manage and triage support tickets.</p>
-            <nav class="nav-links">
-                <a href="index.html" class="btn-ghost btn-sm">Back to Submission</a>
-            </nav>
-        </header>
 
-        <div class="filter-bar card">
-            <div class="filter-group">
-                <label for="searchEmail">Search by Email</label>
-                <input type="text" id="searchEmail" placeholder="Filter by email...">
+            <div class="stats-bar">
+                <div class="stat-item card">
+                    <span class="stat-count" id="statTotal">0</span>
+                    <span class="stat-label">Total</span>
+                </div>
+                <div class="stat-item card">
+                    <span class="stat-count" id="statNew">0</span>
+                    <span class="stat-label">New</span>
+                </div>
+                <div class="stat-item card">
+                    <span class="stat-count" id="statInProgress">0</span>
+                    <span class="stat-label">In Progress</span>
+                </div>
+                <div class="stat-item card">
+                    <span class="stat-count" id="statResolved">0</span>
+                    <span class="stat-label">Resolved</span>
+                </div>
             </div>
-            <div class="filter-group">
-                <label for="filterCategory">Category</label>
-                <select id="filterCategory">
-                    <option value="">All Categories</option>
-                    <option value="IT Support">IT Support</option>
-                    <option value="Facilities">Facilities</option>
-                    <option value="Course Registration">Course Registration</option>
-                    <option value="Student Finance">Student Finance</option>
-                    <option value="Library Services">Library Services</option>
-                    <option value="General Enquiry">General Enquiry</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="filterStatus">Status</label>
-                <select id="filterStatus">
-                    <option value="">All Statuses</option>
-                    <option value="New">New</option>
-                    <option value="Categorised">Categorised</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                </select>
-            </div>
-            <button class="btn-ghost btn-sm" onclick="clearFilters()">Clear Filters</button>
-        </div>
 
-        <div class="stats-bar">
-            <div class="stat-item card">
-                <span class="stat-count" id="statTotal">0</span>
-                <span class="stat-label">Total</span>
+            <div class="card filter-card">
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label for="searchEmail">Email contains</label>
+                        <input type="text" id="searchEmail" placeholder="Filter by email...">
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterCategory">Category</label>
+                        <select id="filterCategory">
+                            <option value="">All Categories</option>
+                            <option value="IT Support">IT Support</option>
+                            <option value="Facilities">Facilities</option>
+                            <option value="Course Registration">Course Registration</option>
+                            <option value="Student Finance">Student Finance</option>
+                            <option value="Library Services">Library Services</option>
+                            <option value="General Enquiry">General Enquiry</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="filterStatus">Status</label>
+                        <select id="filterStatus">
+                            <option value="">All Status</option>
+                            <option value="New">New</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn-acid btn-sm" onclick="applyFilters()">Apply</button>
+                        <button class="btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+                    </div>
+                </div>
             </div>
-            <div class="stat-item card">
-                <span class="stat-count" id="statNew">0</span>
-                <span class="stat-label">New</span>
-            </div>
-            <div class="stat-item card">
-                <span class="stat-count" id="statInProgress">0</span>
-                <span class="stat-label">In Progress</span>
-            </div>
-            <div class="stat-item card">
-                <span class="stat-count" id="statResolved">0</span>
-                <span class="stat-label">Resolved</span>
-            </div>
-        </div>
 
-        <div id="ticketList" class="ticket-list">
-            <p class="empty-state">No tickets found.</p>
+            <div class="card table-card">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Submitted</th>
+                                <th>Requester</th>
+                                <th>Title</th>
+                                <th>Category</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ticketTableBody">
+                            <tr><td colspan="7" class="muted" style="padding:22px;">No tickets found.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <div id="statusModal" class="modal hidden">
         <div class="modal-overlay" onclick="closeModal()"></div>
@@ -83,7 +110,8 @@
                 <label for="newStatus">New Status</label>
                 <select id="newStatus">
                     <option value="New">New</option>
-                    <option value="Categorised">Categorised</option>
+
+
                     <option value="In Progress">In Progress</option>
                     <option value="Resolved">Resolved</option>
                 </select>

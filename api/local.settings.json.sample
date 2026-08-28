@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "COSMOS_CONNECTION_STRING": "<your-cosmos-connection-string>",
+    "AI_LANGUAGE_KEY": "<your-ai-language-key>",
+    "AI_LANGUAGE_ENDPOINT": "https://<your-resource>.cognitiveservices.azure.com/"
+  },
+  "Host": {
+    "CORS": "*"
+  }
+}

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Azure Functions local
+api/local.settings.json
+
+# Azure storage emulator
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
+__blobstorage__/
+__queuestorage__/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Pytest
+.pytest_cache/
