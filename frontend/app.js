@@ -178,7 +178,7 @@ async function renderTickets() {
             <td><span class="badge ${getStatusClass(ticket.status)}">${ticket.status}</span></td>
             <td>
                 <div class="table-actions">
-                    <button class="btn-view btn-sm" onclick="openTicketDetail('${ticket.id}')">View</button>
+                    <button class="btn btn-primary btn-sm" onclick="openTicketDetail('${ticket.id}')">View</button>
                     <select class="table-select" onchange="openStatusModal('${ticket.id}', this.value)">
                         <option value="New" ${ticket.status === 'New' ? 'selected' : ''}>New</option>
                         <option value="In Progress" ${ticket.status === 'In Progress' ? 'selected' : ''}>In Progress</option>

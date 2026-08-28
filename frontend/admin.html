@@ -12,7 +12,7 @@
 <body class="page-admin">
     <header class="site">
         <div class="wrap">
-            <div class="brand">Ticket<span>Triage</span></div>
+            <div class="brand">Ticket<span>Triage</span> <span class="group-label">Group 1</span></div>
             <nav class="site">
                 <a href="index.html">Submit a ticket</a>
                 <a href="admin.html" class="active">Admin review</a>
@@ -72,8 +72,8 @@
                         </select>
                     </div>
                     <div class="filter-actions">
-                        <button class="btn-acid btn-sm" onclick="applyFilters()">Apply</button>
-                        <button class="btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+                        <button class="btn btn-primary btn-sm" onclick="applyFilters()">Apply</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearFilters()">Clear</button>
                     </div>
                 </div>
             </div>
@@ -116,8 +116,8 @@
                 </select>
             </div>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeModal()">Cancel</button>
-                <button class="btn-acid" style="width:auto" onclick="confirmStatusUpdate()">Update</button>
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmStatusUpdate()">Update</button>
             </div>
         </div>
     </div>
@@ -127,7 +127,7 @@
         <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3>Ticket Details</h3>
-                <button class="btn-close" onclick="closeDetailModal()">&times;</button>
+                <button class="btn btn-secondary btn-sm" onclick="closeDetailModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="detail-grid">
@@ -170,7 +170,7 @@
                 </div>
             </div>
             <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeDetailModal()">Close</button>
+                <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
             </div>
         </div>
     </div>

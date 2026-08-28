@@ -12,7 +12,7 @@
 <body class="page-submit">
     <header class="site">
         <div class="wrap">
-            <div class="brand">Ticket<span>Triage</span></div>
+            <div class="brand">Ticket<span>Triage</span> <span class="group-label">Group 1</span></div>
             <nav class="site">
                 <a href="index.html" class="active">Submit a ticket</a>
                 <a href="admin.html">Admin review</a>
@@ -63,7 +63,7 @@
                     <option value="General Enquiry">General Enquiry</option>
                 </select>
             </div>
-            <button type="submit" class="btn-acid" id="submitBtn">Submit Ticket</button>
+            <button type="submit" class="btn btn-primary btn-full" id="submitBtn">Submit Ticket</button>
         </form>
 
         <div id="successMessage" class="success-message card hidden">
@@ -71,7 +71,7 @@
             <h2>Ticket Submitted</h2>
             <p>Your ticket ID is <strong id="ticketIdDisplay"></strong></p>
             <p>Status: <span class="badge badge-new">New</span></p>
-            <button class="btn-ghost" onclick="resetForm()">Submit Another Ticket</button>
+            <button class="btn btn-secondary" onclick="resetForm()">Submit Another Ticket</button>
         </div>
         </div>
     </main>
