@@ -2,3 +2,5 @@ azure-functions
 azure-cosmos
 azure-ai-textanalytics
 azure-core
+azure-identity
+azure-keyvault-secrets

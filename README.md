@@ -2,134 +2,138 @@
 
 AI-powered helpdesk system. Students submit support tickets, Azure AI auto-categorises them, admins review and manage the queue.
 
-## Tech Stack
+**Live:** https://witty-dune-0dbfce600.7.azurestaticapps.net
 
-- **Frontend** — Vanilla HTML/CSS/JS
-- **API** — Azure Functions (Python 3.11)
-- **Database** — Azure Cosmos DB (free tier)
-- **AI** — Azure AI Language (F0)
-- **Hosting** — Azure Static Web Apps (free plan)
+---
 
-## Project Structure
+## Setup
 
-```
-├── frontend/
-│   ├── index.html          # Ticket submission form
-│   ├── admin.html          # Admin dashboard
-│   ├── style.css           # Styles
-│   └── app.js              # UI logic
-├── api/
-│   ├── CreateTicket/       # POST — create ticket
-│   ├── GetTickets/         # GET — list tickets
-│   ├── UpdateTicketStatus/ # POST — update status
-│   ├── health/             # GET — health check
-│   ├── categories/         # GET — list categories
-│   └── requirements.txt
-├── tests/                  # 38 pytest tests
-├── scripts/
-│   └── seed_api.py         # Load sample data
-└── architecture.svg
+### Prerequisites
+
+- Python 3.11+
+- Azure Functions Core Tools (`npm install -g azure-functions-core-tools@4`)
+
+### Steps
+
+1. Clone and enter the repo:
+```bash
+git clone https://github.com/kerjing0328/ticket-triage-g1.git
+cd ticket-triage-g1
 ```
 
-## API Endpoints
+2. Set up the API:
+```bash
+cd api
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy local.settings.json.sample local.settings.json
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/tickets` | Create a new ticket |
-| GET | `/api/tickets` | List all tickets |
-| POST | `/api/tickets` | Update ticket status |
-| GET | `/api/health` | Health check |
-| GET | `/api/categories` | List categories |
+3. Edit `api/local.settings.json` and add your Azure keys (see Environment Variables below).
 
-## How Classification Works
+4. Start the API:
+```bash
+func start --cors "*"
+```
 
-Azure AI Language extracts key phrases from the ticket description, then matches them against category keywords:
+5. In a separate terminal, serve the frontend:
+```bash
+python -m http.server 3000 --directory frontend
+```
 
-- **IT Support** — wifi, password, login, laptop, network, software
-- **Facilities** — aircon, toilet, light, cleaning, door, broken
-- **Course Registration** — timetable, drop, enroll, class, subject
-- **Student Finance** — fee, invoice, payment, scholarship, loan
-- **Library Services** — book, journal, borrow, return, database
+6. Open in browser:
+- Ticket form: http://localhost:3000
+- Admin dashboard: http://localhost:3000/admin.html
 
-Defaults to **General Enquiry** if no match. Falls back to keyword matching if Azure AI is unavailable.
+7. (Optional) Load sample data:
+```bash
+python scripts/seed_api.py http://localhost:7071/api
+```
+
+---
 
 ## Deployment
 
-Runs on Azure Static Web Apps — frontend and API on the same domain, no CORS issues.
-
-### 1. Create Resources
-
-```bash
-RG=rg-tickettriage
-LOC=southeastasia
-az group create -n $RG -l $LOC
-
-# Cosmos DB (free tier)
-az cosmosdb create -n cosmos-tickettriage -g $RG --enable-free-tier true
-az cosmosdb sql database create -a cosmos-tickettriage -g $RG -n Helpdesk --throughput 400
-az cosmosdb sql container create -a cosmos-tickettriage -g $RG -d Helpdesk -n Tickets --partition-key-path /id
-
-# Azure AI Language (F0)
-az cognitiveservices account create -n lang-tickettriage -g $RG --kind TextAnalytics --sku F0 -l $LOC --yes
-
-# Static Web App
-az staticwebapp create -n swa-tickettriage -g $RG \
-  --source <your-github-url> --branch main \
-  --app-location "frontend" --api-location "api" \
-  --sku Free
-```
-
-### 2. Set App Settings
-
-```bash
-COSMOS_CONN=$(az cosmosdb keys list -n cosmos-tickettriage -g $RG --query primaryMasterKey -o tsv)
-AI_KEY=$(az cognitiveservices account keys list -n lang-tickettriage -g $RG --query key1 -o tsv)
-
-az staticwebapp appsettings set -n swa-tickettriage -g $RG --setting-names \
-  COSMOS_CONNECTION_STRING="AccountEndpoint=https://cosmos-tickettriage.documents.azure.com:443/;AccountKey=$COSMOS_CONN;" \
-  AI_LANGUAGE_ENDPOINT="https://lang-tickettriage-g1.cognitiveservices.azure.com/" \
-  AI_LANGUAGE_KEY="$AI_KEY"
-```
-
-### 3. Deploy
-
-Push to `main` — GitHub Actions runs tests and deploys automatically.
+Push to `main` to trigger GitHub Actions. Tests run first, then deploys to Azure Static Web Apps.
 
 ```bash
 git add . && git commit -m "deploy" && git push
 ```
 
-Verify: `curl https://swa-tickettriage.azurestaticapps.net/api/health`
+### Check Status
+
+- GitHub Actions: https://github.com/kerjing0328/ticket-triage-g1/actions
+- Live App: https://witty-dune-0dbfce600.7.azurestaticapps.net
+
+### Recreate Resources (if needed)
+
+```bash
+RG=rg-ticket-triage
+
+az staticwebapp create -n swa-ticket-triage -g $RG \
+  --source https://github.com/kerjing0328/ticket-triage-g1.git \
+  --branch main \
+  --app-location "frontend" --api-location "api" \
+  --sku Free --location eastasia
+
+az staticwebapp appsettings set -n swa-ticket-triage -g $RG --setting-names \
+  COSMOS_CONNECTION_STRING="<connection-string>" \
+  AI_LANGUAGE_ENDPOINT="https://language-ticket-triage-g1.cognitiveservices.azure.com/" \
+  AI_LANGUAGE_KEY="<key>"
+```
+
+---
+
+## Environment Variables
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `COSMOS_CONNECTION_STRING` | local.settings.json / Azure app settings | Cosmos DB connection |
+| `AI_LANGUAGE_ENDPOINT` | local.settings.json / Azure app settings | Azure AI Language endpoint |
+| `AI_LANGUAGE_KEY` | local.settings.json / Azure app settings | Azure AI Language key |
+| `FUNCTIONS_WORKER_RUNTIME` | local.settings.json | Must be `python` |
+| `AzureWebJobsStorage` | local.settings.json | Storage emulator (local dev only) |
+
+Verify configuration: `curl https://witty-dune-0dbfce600.7.azurestaticapps.net/api/health`
+
+---
 
 ## Testing
+
+Run from the project root:
 
 ```bash
 python -m pytest tests -v
 ```
 
-38 tests covering health, categories, and ticket operations. All run without Azure credentials.
+38 tests, all run without Azure credentials:
 
-## Environment Variables
+| File | Tests | Covers |
+|------|-------|--------|
+| `test_health.py` | 12 | Health endpoint, environment detection |
+| `test_categories.py` | 9 | Categories endpoint and data structure |
+| `test_tickets.py` | 17 | Combined health and categories tests |
 
-| Variable | Purpose |
-|----------|---------|
-| `COSMOS_CONNECTION_STRING` | Cosmos DB connection |
-| `AI_LANGUAGE_ENDPOINT` | Azure AI Language endpoint |
-| `AI_LANGUAGE_KEY` | Azure AI Language key |
-
-## Cost
-
-All free-tier:
-
-- **Static Web Apps** — Free plan, 100 GB/month
-- **Azure Functions** — Included in free plan
-- **Cosmos DB** — 1,000 RU/s + 25 GB (free tier, opt-in required)
-- **Azure AI Language** — F0, 5,000 predictions/month
+---
 
 ## Limitations
 
-- No real authentication — admin uses a shared key
-- Classification is keyword-based, not trained on real data
-- No pagination on admin view
-- No file attachments or email notifications
-- Cold starts on first request after idle
+- No real authentication — admin page uses a shared key, not sign-in
+- Keyword-based classification — works for demo, needs training data for production
+- No pagination — admin view fetches all tickets
+- No file attachments — text-only tickets
+- No email notifications — status changes not communicated
+- No SLA timers — no time-based escalation
+- Cold starts — first request after idle can take a few seconds
+
+---
+
+## Future Improvements
+
+- Azure Static Web Apps built-in authentication with admin role
+- Custom Text Classification trained on real tickets
+- Pagination and CSV export on admin view
+- Email notification on status change
+- Setup application monitor
+- File attachment support

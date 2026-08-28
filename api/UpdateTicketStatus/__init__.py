@@ -3,6 +3,9 @@ import json
 import logging
 import azure.functions as func
 from azure.cosmos import CosmosClient
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from shared.secrets import get_secret
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
@@ -16,12 +19,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         if not ticket_id or not new_status:
             return func.HttpResponse("Missing 'id' or 'status' in request body.", status_code=400)
 
-        cosmos_string = os.environ["COSMOS_CONNECTION_STRING"]
+        cosmos_string = get_secret("COSMOS_CONNECTION_STRING")
         cosmos_client = CosmosClient.from_connection_string(cosmos_string)
         database = cosmos_client.get_database_client("Helpdesk")
         container = database.get_container_client("Tickets")
 
-        # Query for the item by id (works regardless of partition key config)
         query = "SELECT * FROM c WHERE c.id = @id"
         items = list(container.query_items(
             query=query,
