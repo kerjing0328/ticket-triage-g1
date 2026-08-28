@@ -77,25 +77,54 @@ az staticwebapp create -n swa-ticket-triage -g $RG \
   --app-location "frontend" --api-location "api" \
   --sku Free --location eastasia
 
+# Key Vault credentials (service principal for secret access)
+az ad app create --display-name "tickettriage-kv-access"
+az ad sp create --id <app-id>
+az ad app credential reset --id <app-id> --append --end-date "2027-01-01"
+az role assignment create --assignee <app-id> \
+  --role "Key Vault Secrets User" \
+  --scope /subscriptions/<sub>/resourceGroups/$RG/providers/Microsoft.KeyVault/vaults/kv-ticket-triage-g1
+
 az staticwebapp appsettings set -n swa-ticket-triage -g $RG --setting-names \
-  COSMOS_CONNECTION_STRING="<connection-string>" \
-  AI_LANGUAGE_ENDPOINT="https://language-ticket-triage-g1.cognitiveservices.azure.com/" \
-  AI_LANGUAGE_KEY="<key>"
+  AZURE_CLIENT_ID="<client-id>" \
+  AZURE_CLIENT_SECRET="<client-secret>" \
+  AZURE_TENANT_ID="<tenant-id>" \
+  KEY_VAULT_URL="https://kv-ticket-triage-g1.vault.azure.net/"
 ```
 
 ---
 
 ## Environment Variables
 
+### Local Development
+
+Set these in `api/local.settings.json`:
+
 | Variable | Where | Purpose |
 |----------|-------|---------|
-| `COSMOS_CONNECTION_STRING` | local.settings.json / Azure app settings | Cosmos DB connection |
-| `AI_LANGUAGE_ENDPOINT` | local.settings.json / Azure app settings | Azure AI Language endpoint |
-| `AI_LANGUAGE_KEY` | local.settings.json / Azure app settings | Azure AI Language key |
+| `COSMOS_CONNECTION_STRING` | local.settings.json | Cosmos DB connection |
+| `AI_LANGUAGE_ENDPOINT` | local.settings.json | Azure AI Language endpoint |
+| `AI_LANGUAGE_KEY` | local.settings.json | Azure AI Language key |
 | `FUNCTIONS_WORKER_RUNTIME` | local.settings.json | Must be `python` |
 | `AzureWebJobsStorage` | local.settings.json | Storage emulator (local dev only) |
 
-Verify configuration: `curl https://witty-dune-0dbfce600.7.azurestaticapps.net/api/health`
+### Azure Production (Key Vault)
+
+Secrets are stored in Azure Key Vault (`kv-ticket-triage-g1`). The API fetches them at runtime using a service principal.
+
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `COSMOS_CONNECTION_STRING` | Key Vault | Cosmos DB connection |
+| `AI_LANGUAGE_ENDPOINT` | Key Vault | Azure AI Language endpoint |
+| `AI_LANGUAGE_KEY` | Key Vault | Azure AI Language key |
+| `AZURE_CLIENT_ID` | App settings | Service principal client ID |
+| `AZURE_CLIENT_SECRET` | App settings | Service principal secret |
+| `AZURE_TENANT_ID` | App settings | Azure AD tenant ID |
+| `KEY_VAULT_URL` | App settings | Key Vault URL |
+
+The code tries Key Vault first, falls back to environment variables for local dev.
+
+Verify: `curl https://witty-dune-0dbfce600.7.azurestaticapps.net/api/health`
 
 ---
 
