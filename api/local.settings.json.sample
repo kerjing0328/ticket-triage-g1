@@ -6,7 +6,11 @@
     "FUNCTIONS_WORKER_RUNTIME": "python",
     "COSMOS_CONNECTION_STRING": "<your-cosmos-connection-string>",
     "AI_LANGUAGE_KEY": "<your-ai-language-key>",
-    "AI_LANGUAGE_ENDPOINT": "https://<your-resource>.cognitiveservices.azure.com/"
+    "AI_LANGUAGE_ENDPOINT": "https://<your-resource>.cognitiveservices.azure.com/",
+    "KEY_VAULT_URL": "",
+    "AZURE_CLIENT_ID": "",
+    "AZURE_CLIENT_SECRET": "",
+    "AZURE_TENANT_ID": ""
   },
   "Host": {
     "CORS": "*"
