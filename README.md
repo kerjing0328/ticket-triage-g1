@@ -152,7 +152,6 @@ python -m pytest tests -v
 
 - No real authentication — admin page uses a shared key, not sign-in
 - Keyword-based classification — works for demo, needs training data for production
-- No pagination — admin view fetches all tickets
 - No file attachments — text-only tickets
 - No email notifications — status changes not communicated
 - No SLA timers — no time-based escalation
@@ -164,7 +163,6 @@ python -m pytest tests -v
 
 - Azure Static Web Apps built-in authentication with admin role
 - Custom Text Classification trained on real tickets
-- Pagination and CSV export on admin view
 - Email notification on status change
 - Setup application monitor
 - File attachment support
