@@ -110,7 +110,9 @@ Set these in `api/local.settings.json`:
 
 ### Azure Production (Key Vault)
 
-Secrets are stored in Azure Key Vault (`kv-ticket-triage-g1`). The API fetches them at runtime using a service principal.
+Secrets are stored in Azure Key Vault (`kv-ticket-triage-g1`). The API fetches them at runtime using a service principal (IAM).
+
+> **Why IAM instead of Managed Identity?** Azure Static Web Apps managed identity is not available on the Azure for Students free tier. We use a service principal with "Key Vault Secrets User" role as a workaround.
 
 | Variable | Where | Purpose |
 |----------|-------|---------|
